@@ -1,0 +1,44 @@
+GitHub: keras/layers/rnn/gru.py
+https://github.com/aladdinpersson/Machine-Learning-Collection/blob/master/ML/TensorFlow/Basics/tutorial6-rnn-gru-lstm.py
+
+
+Keras/TensorFlow 기반의 실무용
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import GRU, Dense, Dropout
+
+# -------------------------------------------------------
+# [패턴 A] : 기본형 (Standard)
+# - 가장 많이 쓰이는 형태.
+# - 과거 N년 데이터를 보고 -> 미래 1년 값을 예측
+# -------------------------------------------------------
+model = Sequential()
+
+# units: GRU 셀의 개수 (보통 32, 64, 128 등)
+# input_shape: (Look_back, Features) -> 예: (8, 1)
+model.add(GRU(units=64, input_shape=(8, 1), activation='tanh'))
+
+# 출력층
+model.add(Dense(1))
+
+model.compile(optimizer='adam', loss='mse')
+
+
+# -------------------------------------------------------
+# [패턴 B] : 적층형 (Stacked GRU)
+# - 데이터 패턴이 복잡해서 GRU 층을 깊게 쌓을 때 (Deep Learning)
+# -------------------------------------------------------
+model_deep = Sequential()
+
+# 첫 번째 층: return_sequences=True 필수!
+# (다음 GRU 층에게 모든 시점의 은닉 상태를 넘겨줘야 하기 때문)
+model_deep.add(GRU(64, return_sequences=True, input_shape=(8, 1)))
+model_deep.add(Dropout(0.2)) # 과적합 방지
+
+# 두 번째 층: 마지막 시점의 값만 필요하면 False (기본값)
+model_deep.add(GRU(32, return_sequences=False))
+model_deep.add(Dropout(0.2))
+
+model_deep.add(Dense(1))
+
