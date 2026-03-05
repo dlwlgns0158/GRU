@@ -1,0 +1,83 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, GRU
+from sklearn.preprocessing import MinMaxScaler
+
+# ---------------------------------------------------------
+# 1. 데이터 생성 (Sine Wave)
+# ---------------------------------------------------------
+# 0부터 100까지 0.1 간격으로 데이터 생성 (총 1000개)
+t = np.arange(0, 100, 0.1)
+data = np.sin(t) + np.random.normal(0, 0.05, len(t)) # 약간의 노이즈 추가
+data = data.reshape(-1, 1) # (1000, 1) 형태로 변환
+
+# ---------------------------------------------------------
+# 2. 데이터 전처리 (정규화 & 데이터셋 생성)
+# ---------------------------------------------------------
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(data)
+
+look_back = 10 # 과거 10개의 데이터를 보고 다음 1개를 예측
+
+# 사용자가 작성한 코드와 동일한 원리의 함수
+def create_dataset(dataset, look_back=1):
+    X, Y = [], []
+    for i in range(len(dataset) - look_back):
+        X.append(dataset[i:(i + look_back), 0])
+        Y.append(dataset[i + look_back, 0])
+    return np.array(X), np.array(Y)
+
+# 학습용/테스트용 데이터 분리 (8:2)
+train_size = int(len(scaled_data) * 0.8)
+test_data = scaled_data[train_size - look_back:] # 테스트 앞부분에 look_back 만큼 붙여줌 (연결성 위해)
+train_data = scaled_data[:train_size]
+
+X_train, y_train = create_dataset(train_data, look_back)
+X_test, y_test = create_dataset(test_data, look_back)
+
+# GRU 입력 형태: [samples, time_steps, features] -> (N, 10, 1)
+X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+
+# ---------------------------------------------------------
+# 3. 모델 구축 (Core Logic)
+# ---------------------------------------------------------
+model = Sequential()
+
+# GRU 레이어: 사용자의 코드와 동일한 구조
+# return_sequences=False는 마지막 시점의 은닉 상태만 출력한다는 뜻 (Many-to-One)
+model.add(GRU(units=50, input_shape=(look_back, 1), activation='tanh'))
+
+# 출력 레이어: 다음 시점의 값 1개를 예측
+model.add(Dense(1))
+
+model.compile(loss='mean_squared_error', optimizer='adam')
+model.summary()
+
+# ---------------------------------------------------------
+# 4. 학습
+# ---------------------------------------------------------
+print("Training started...")
+history = model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=1)
+
+# ---------------------------------------------------------
+# 5. 예측 및 결과 시각화
+# ---------------------------------------------------------
+predicted_x = model.predict(X_test)
+
+# 역정규화 (원래 값으로 복원)
+predicted_x = scaler.inverse_transform(predicted_x
+
+
+
+
+
+
+
+
+#구분,기초 코드 
+데이터,np.sin(t) (단일 사인 파형),topic_year_ratio[topic] (여러 개의 실제 토픽 시계열)
+구조,한 번의 create_dataset 및 model.fit,for loop를 돌며 토픽 개수만큼 데이터 생성 및 학습 반복
+예측 방식,테스트 셋(X_test)을 한 번에 넣어 예측,Iterative Prediction: 예측한 값을 다시 입력(current_batch)에 넣어 미래를 예측하는 루프(for _ in range(future_years)) 구현
+시각화,단순 plot,subplot을 사용하여 그리드(Grid) 형태로 여러 그래프 출력

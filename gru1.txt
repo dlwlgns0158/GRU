@@ -1,0 +1,60 @@
+# =========================
+# GRU 기본 코드 (TensorFlow / Keras)
+# - 다변량/단변량 시계열 모두 가능
+# - 다음 시점 1개 값 예측(regression) 예시
+# =========================
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# 1) 더미 시계열 데이터 생성 (예: sin 파형)
+np.random.seed(42)
+t = np.arange(0, 2000)
+series = np.sin(0.02 * t) + 0.1 * np.random.randn(len(t))
+
+# 2) 윈도우(시퀀스) 만들기: X는 과거 window_size개, y는 다음 1개
+def make_dataset(series, window_size=30):
+    X, y = [], []
+    for i in range(len(series) - window_size):
+        X.append(series[i:i+window_size])
+        y.append(series[i+window_size])
+    X = np.array(X)  # (N, window_size)
+    y = np.array(y)  # (N,)
+    return X, y
+
+window_size = 30
+X, y = make_dataset(series, window_size)
+
+# 3) RNN 입력 형태로 변환: (samples, timesteps, features)
+# 단변량이면 features=1
+X = X[..., np.newaxis]  # (N, window_size, 1)
+
+# 4) Train/Val 분할
+split = int(len(X) * 0.8)
+X_train, y_train = X[:split], y[:split]
+X_val, y_val = X[split:], y[split:]
+
+# 5) GRU 모델 정의
+model = models.Sequential([
+    layers.Input(shape=(window_size, 1)),
+    layers.GRU(64, return_sequences=False),   # 기본 GRU
+    layers.Dense(32, activation="relu"),
+    layers.Dense(1)                           # 회귀 출력(다음 값 1개)
+])
+
+model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+model.summary()
+
+# 6) 학습
+history = model.fit(
+    X_train, y_train,
+    validation_data=(X_val, y_val),
+    epochs=10,
+    batch_size=32
+)
+
+# 7) 예측
+pred = model.predict(X_val[:5])
+print("y_true:", y_val[:5])
+print("y_pred:", pred.flatten())

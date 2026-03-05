@@ -1,0 +1,51 @@
+import torch
+import torch.nn as nn
+
+class SimpleGRU(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
+        super(SimpleGRU, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        
+        # GRU 레이어 정의
+        # batch_first=True: 입력 데이터 형태를 (Batch, Seq, Feature)로 설정
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+        
+        # 최종 출력을 위한 Fully Connected 레이어
+        self.fc = nn.Linear(hidden_size, output_size)
+    
+    def forward(self, x):
+        # 초기 은닉 상태(Hidden State) 정의 (0으로 초기화)
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        
+        # GRU 순전파
+        # out: 모든 시점의 은닉 상태들
+        # _ : 마지막 시점의 은닉 상태 (여기서는 사용 안 함)
+        out, _ = self.gru(x, h0)
+        
+        # 마지막 시점(time step)의 결과만 가져와서 FC 레이어 통과
+        out = out[:, -1, :] 
+        out = self.fc(out)
+        return out
+
+# --- ex ---
+
+# 하이퍼파라미터 설정
+input_dim = 10    # 입력 특성(feature)의 개수
+hidden_dim = 20   # 은닉 상태의 크기 (기억 용량)
+output_dim = 1    # 최종 출력 크기 (예: 다음 날 주가 1개 예측)
+seq_length = 5    # 시퀀스 길이 (예: 5일치 데이터)
+batch_size = 3    # 한 번에 학습할 데이터 개수
+
+# 모델 생성
+model = SimpleGRU(input_dim, hidden_dim, output_dim)
+
+# 더미 입력 데이터 생성 (Batch Size, Sequence Length, Input Size)
+dummy_input = torch.randn(batch_size, seq_length, input_dim)
+
+# 예측 실행
+prediction = model(dummy_input)
+
+print(f"입력 데이터 Shape: {dummy_input.shape}")
+print(f"모델 출력 Shape: {prediction.shape}")
+print(f"출력 값:\n{prediction}")
